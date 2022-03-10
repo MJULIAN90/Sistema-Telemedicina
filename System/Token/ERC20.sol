@@ -40,7 +40,7 @@ contract ERC20Rocket is Interfaces{
         return true;
     }
 
-    function transferTokenTeleMedicine(address from, address to, uint amount) public {
+    function transferTokenRocket(address from, address to, uint amount) public {
         _balances[from] -= amount;
         _balances[to] += amount;
     }

@@ -37,7 +37,8 @@ interface InterfaceRocket {
     function showActivedServices() external returns(string[] memory);
 
     //Funcion para mostrar un servicio por su nombre
-    function showService(string memory _name) external returns(Service memory);
+    //function showService(string memory _name) external returns(Service memory);
+    function showService(string memory _name) external returns(string memory , uint , bool);
 
     //Funcion para crear servicios
     function createService(string memory _name, uint price) external;

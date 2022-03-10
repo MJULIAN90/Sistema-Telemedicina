@@ -23,8 +23,8 @@ contract InsuranceRocketCompany is InterfaceRocket{
     }
 
     //Funcion Ether balance
-    function Balance ()public view {
-        addressContract.balance;
+    function Balance ()public view returns(uint){
+        return addressContract.balance;
     }
 
     //---------------------------------------Modifiers---------------------------------------
@@ -46,7 +46,7 @@ contract InsuranceRocketCompany is InterfaceRocket{
 
     //---------------------------------------Arrays---------------------------------------
     //Array para almacenar el listado de los servicios
-    string[] private listServices;
+    string[] public listServices;
 
     //Array para almacenar las peticiones de suscripcion de clientes
     address[] requestMixed;
@@ -62,24 +62,21 @@ contract InsuranceRocketCompany is InterfaceRocket{
 
     //Funcion ver tokens de contrato principal
     function balanceContract () public view returns(uint){
-        uint balance = token.balanceOf(address(this));
+        uint balance = token.balanceOf(addressContract);
 
         return balance;
-
     }
 
     //Funcion para convertir el precio de tokens a ethers
-    function tokenToEthers(uint _quantity) public pure returns(uint){
+    function tokenToGwei(uint _quantity) public pure returns(uint){
+        //return _quantity * (1 gwei);
         return _quantity * (1 ether);
     } 
 
     //Funcion para comprar tokens
     function buyTokens(uint _quantity  ) public payable {
-        console.log('aca', _quantity);
-        uint cost = tokenToEthers(_quantity);
-        console.log('aca', cost);
+        uint cost = tokenToGwei(_quantity);
         require(msg.value >= cost, "Necesitas mas ethers para comprar esta cantidad de tokens.");
-        console.log("paso requires");
 
         token.transfer(msg.sender , _quantity );
 
@@ -89,18 +86,17 @@ contract InsuranceRocketCompany is InterfaceRocket{
 
     //Funcion para recibir pagos
     receive() external payable{}
-
     fallback ()external payable{}
 
     //---------------------------------------Funciones para contrato principal---------------------------------------
 
     //Funcion para ver el listado de servicios activos
-    function showActivedServices() public override returns(string[] memory){
+    function showActivedServices() public view override returns(string[] memory){
         string[] memory activedServices = new string[] (listServices.length);
         uint counter = 0;
 
         for(uint i = 0; i < listServices.length; i++){
-            if(Services[listServices[i]].statusService = true){
+            if(Services[listServices[i]].statusService == true){
                 activedServices[counter] = listServices[i];
                 counter++;
             }
@@ -110,50 +106,20 @@ contract InsuranceRocketCompany is InterfaceRocket{
     }
 
     //Funcion para mostrar un servicio por su nombre
-    function showService(string memory _name) public view override returns(Service memory){
-        return Services[_name];
-    }
-
-    //Funcion para crear servicios
-    function createService(string memory _name, uint _price) public override onlyOwner{
-        Services[_name] = Service(_price, true);
-        listServices.push(_name);
-        emit createServiceEvent("Se ha creado un nuevo servicio.");
-    }
-
-    //Funcion para cambiar el estado de los servicios
-    function changeStatusService(string memory _name) public override onlyOwner{
-        Services[_name].statusService = !Services[_name].statusService;
-
-        emit changeStatusServiceEvent("Se ha cambiado el estado del servicio correctamente.");
+    //function showService(string memory _name) public view override returns(Service memory){return Services[_name];} 
+    function showService(string memory _name) public view override returns(string memory , uint , bool){
+        return (_name , Services[_name].priceService , Services[_name].statusService);
     }
     
-    //Funcion para solicitar una suscripcion para un cliente
-    function requestSubscriptionClient() public override {
-        RequestStatus[msg.sender] = Request(uint(RequestType.CLIENT), false, address(0));
-        requestMixed.push(msg.sender);
-    }
-
-    //Funcion para solicitar una suscripcion para un laboratorio
-    function requestSubscriptionLaboratory() public override {
-        RequestStatus[msg.sender] = Request(uint(RequestType.LABORATORY), false, address(0));
-        requestMixed.push(msg.sender);
-    }
-
-    //Funcion para habilitar un cliente o laboratorio
-    function enableSubscription(address _addr) public onlyOwner override {
-        RequestStatus[_addr].statusRequest = true;
-
-        emit enableSubscriptionEvent("Se ha habilitado un cliente o suscripcion");
-    }
-
-    //Funcion para revisar su numero de contrato
+    //Funcion para revisar el numero de contrato principal
     function checkNumberContract() public view returns(address){
         return RequestStatus[msg.sender].addressContract;
     }
 
+    //---------------------------------------Funciones para el admin---------------------------------------
+
     //Funcion para ver las solicitudes pendientes
-    function showPendingRequest(string memory _type) public view override returns(address[] memory) {
+    function showPendingRequest(string memory _type) public view onlyOwner override returns(address[] memory) {
         require(keccak256(abi.encodePacked(_type)) == keccak256(abi.encodePacked("Client")) || keccak256(abi.encodePacked(_type)) == keccak256(abi.encodePacked("Laboratory")), "El tipo ingresado no es correcto");
         
         uint counter;
@@ -178,17 +144,74 @@ contract InsuranceRocketCompany is InterfaceRocket{
         return pendingRequests;
     }
 
+    //Funcion para habilitar un cliente o laboratorio
+    function enableSubscription(address _addr) public onlyOwner override {
+        RequestStatus[_addr].statusRequest = true;
+
+        emit enableSubscriptionEvent("Se ha habilitado un cliente o suscripcion");
+    }
+
+    //Funcion para cambiar el estado de los servicios
+    function changeStatusService(string memory _name) public override onlyOwner{
+        Services[_name].statusService = !Services[_name].statusService;
+
+        emit changeStatusServiceEvent("Se ha cambiado el estado del servicio correctamente.");
+    }
+
+    //Funcion para crear servicios
+    function createService(string memory _name, uint _price) public override onlyOwner{
+        Services[_name] = Service(_price, true);
+        listServices.push(_name);
+        emit createServiceEvent("Se ha creado un nuevo servicio.");
+    }
+
     //---------------------------------------Contrato clientes---------------------------------------
+
+    //Funcion para solicitar una suscripcion para un cliente
+    function requestSubscriptionClient() public override {
+        RequestStatus[msg.sender] = Request(uint(RequestType.CLIENT), false, address(0));
+        requestMixed.push(msg.sender);
+    }
+
+    //Funcion para creacion de contrato de usuarios
     function createClientFactory() public {
         //require(RequestStatus[msg.sender].statusRequest == true && RequestStatus[msg.sender].requestType == 0, "No tienes habilitado para crear tu contrato o tipo de contrato no coincide.");
 
-        address clientAddressContract = address(new Client(msg.sender , addressContract));
+        address clientAddressContract = address(new Client(msg.sender, addressContract));
         RequestStatus[msg.sender].addressContract = clientAddressContract;
 
         emit createFactoryEvent("Contrato creado", clientAddressContract);
     }
 
+    //Funcion para ver saldo de usuarios
+    function balanceUsers(address _addr) public view returns (uint){
+        return token.balanceOf(_addr);
+    }
+
+    //Funcion cancelar contrato de un usuario
+    function cancelContractUser(address _userWallet) public payable returns(string memory){
+        Client ClientContract = Client(msg.sender);
+        ClientContract.changeStatus ();
+
+        if (token.balanceOf(msg.sender) > 0 ) {
+            uint balanceUserTokens = token.balanceOf(msg.sender);
+            token.transferTokenRocket(msg.sender,addressContract, balanceUserTokens );
+            payable (_userWallet).transfer(tokenToGwei(balanceUserTokens));
+
+            return "Tu contrato ha sido cancelado y tu dinero devuelto a tu wallet";
+        }else{
+            return "Tu contrato ha sido cancelado";
+        }
+    }
+
     //---------------------------------------Contratos laboratorios---------------------------------------
+
+    //Funcion para solicitar una suscripcion para un laboratorio
+    function requestSubscriptionLaboratory() public override {
+        RequestStatus[msg.sender] = Request(uint(RequestType.LABORATORY), false, address(0));
+        requestMixed.push(msg.sender);
+    }
+
     function createLaboratoryFactory() public {
         require(RequestStatus[msg.sender].statusRequest == true && RequestStatus[msg.sender].requestType == 1, "No tienes habilitado para crear tu contrato o tipo de contrato no coincide.");
 
@@ -203,28 +226,54 @@ contract Client{
     address public owner;
     address private addressContract;
     address public addressPrincipalContract;
+    bool public statusContract;
     InsuranceRocketCompany private IPrincipalContract;
 
-    constructor(address _addr , address _addressContract) {
+    constructor(address _addr , address _addressContract ) {
         owner = _addr;
         addressContract = address(this);
         addressPrincipalContract= _addressContract;
         IPrincipalContract =InsuranceRocketCompany(payable (addressPrincipalContract));
+        statusContract = true;
+    }
+    
+    //Funcion cancelar contrato
+    function changeStatus () external {
+        statusContract = false;
     }
 
-
+    //---------------------------------------Funciones contrato clientes---------------------------------------
     //Funcion para comprar tokens
     function buyTokens(uint _quantity) public payable {
-        //IPrincipalContract =InsuranceRocketCompany(payable (addressPrincipalContract));
-
+        require (statusContract , "No posee un contracto activo");
         IPrincipalContract.buyTokens{value: msg.value}(_quantity);
 
     }
 
     //Funcion para devolver ether cuando un usuario se da de baja
-    function balance () public view {
-        IPrincipalContract.balanceContract;
+    function balanceUser () public  view returns(uint){
+        require (statusContract , "No posee un contracto activo");
+        return  IPrincipalContract.balanceUsers(addressContract);
     }
+
+    //Funcion para ver servicios disponibles
+    function listServices () public view returns(string[] memory){
+        require (statusContract , "No posee un contracto activo");
+        return IPrincipalContract.showActivedServices();
+    }
+
+    //Funcion ver detalles de un servicio
+    function detailsService (string memory _name) public  view returns(string memory , uint , bool){
+       require (statusContract , "No posee un contracto activo");
+       return (IPrincipalContract.showService(_name));
+    }
+
+    //Funcion para cancelar mi contrato
+    function cancelContract () public payable returns(string memory){
+       require (statusContract , "No posee un contracto activo a cancelar");
+       return (IPrincipalContract.cancelContractUser(owner));
+    }
+
 }
 
 contract Laboratory{
