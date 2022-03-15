@@ -15,7 +15,7 @@ interface InterfaceRocket {
     //Evento para notificar cuando se crea un contrato apra cliente
     event createFactoryEvent(string, address);
     //Evento servicio asginado a un usuario
-    event asignServiceClienteEvent (string , address);
+    event asignServiceClientEvent (string , address);
     
     //---------------------------------------Structs---------------------------------------
     //Servicios ofrecidos (precio y estado)

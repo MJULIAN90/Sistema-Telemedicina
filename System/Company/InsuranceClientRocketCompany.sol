@@ -13,72 +13,71 @@ contract Client{
         owner = _addr;
         addressContract = address(this);
         addressPrincipalContract= _addressContract;
-        IPrincipalContract =InsuranceRocketCompany(payable (addressPrincipalContract));
+        IPrincipalContract =InsuranceRocketCompany(payable(addressPrincipalContract));
         statusContract = true;
     }
     
     //Funcion cancelar contrato
-    function changeStatus () external {
+    function changeStatus() external {
         statusContract = false;
     }
 
     //---------------------------------------Funciones contrato clientes---------------------------------------
     //Funcion para comprar tokens
     function buyTokens(uint16 _quantity) public payable {
-        require (statusContract , "No posee un contracto activo");
+        require(statusContract , "No posee un contracto activo");
         IPrincipalContract.buyTokens{value: msg.value}(_quantity, owner);
 
     }
 
     //Funcion para devolver ether cuando un Cliente se da de baja
-    function balanceUser () public  view returns(uint){
-        require (statusContract , "No posee un contracto activo");
-        return  IPrincipalContract.balanceClient(addressContract);
+    function balanceUser() public  view returns(uint){
+        require(statusContract , "No posee un contracto activo");
+        return  IPrincipalContract.balanceContractUser(addressContract);
     }
 
     //Funcion para ver servicios disponibles
-    function listServices () public view returns(string[] memory){
-        require (statusContract , "No posee un contracto activo");
+    function listServices() public view returns(string[] memory){
+        require(statusContract , "No posee un contracto activo");
         return IPrincipalContract.showActivedServices();
     }
 
     //Funcion ver detalles de un servicio
-    function detailsService (string memory _name) public  view returns(string memory , uint16 , bool){
-       require (statusContract , "No posee un contracto activo");
+    function detailsService(string memory _name) public  view returns(string memory , uint16 , bool){
+       require(statusContract , "No posee un contracto activo");
        return IPrincipalContract.showServiceDetails(_name);
     }
 
     //Funcion para cancelar mi contrato
-    function cancelContract () public payable returns(string memory){
-       require (statusContract , "No posee un contracto activo a cancelar");
-       return (IPrincipalContract.cancelContractClient(owner));
+    function cancelContract() public payable returns(string memory){
+       require(statusContract , "No posee un contracto activo a cancelar");
+       return(IPrincipalContract.cancelContractClient(owner));
     }
 
     //Funcion usar un servicio
-    function useService (string memory _nameService) public {
-        IPrincipalContract.asignServiceCliente(_nameService);
+    function useService(string memory _nameService) public {
+        IPrincipalContract.asignServiceClient(_nameService, owner);
     }
 
     //Funcion usar un servicio
-    function useSpecialService (string memory _nameService) public {
-        IPrincipalContract.asignSpecialServiceCliente(_nameService);
+    function useSpecialService(string memory _nameService) public {
+        IPrincipalContract.asignSpecialServiceClient(_nameService, owner);
     }
 
     //Funcion para ver mi historial de servicios
     function historyServices()public view returns(string [] memory) {
-        return IPrincipalContract.showServicesCliente();
+        return IPrincipalContract.showServicesClient(owner);
     }
 
     //Funcion para ver servicios especiales disponibles
-    function listSpecialServices () public view returns(string[] memory){
-        require (statusContract , "No posee un contracto activo");
+    function listSpecialServices() public view returns(string[] memory){
+        require(statusContract , "No posee un contracto activo");
         return IPrincipalContract.showActivedSpecialServices();
     }
 
     //Funcion ver detalles de un servicios especiales
-    function detailsSpecialService (string memory _name) public  view returns(string memory , uint16 , bool){
-       require (statusContract , "No posee un contracto activo");
+    function detailsSpecialService(string memory _name) public  view returns(string memory , uint16 , bool){
+       require(statusContract , "No posee un contracto activo");
        return IPrincipalContract.showSpecialServiceDetails(_name);
     }
-
 }
